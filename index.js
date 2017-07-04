@@ -1,4 +1,5 @@
-var parseSchema = require('protocol-buffers-schema');
+var _ = require("underscore");
+var parseSchema = require('pb-schema');
 var primitive = require('./types');
 var fs = require('fs');
 var path = require('path');
@@ -76,9 +77,10 @@ Compiler.prototype.compile = function(type) {
  * Resolves a type name at the given path in the schema tree.
  * Returns a compiled JSON schema.
  */
-Compiler.prototype.resolve = function(type, from, base, key) {
-  if (primitive[type])
-    return primitive[type];
+Compiler.prototype.resolve = function(type, from, base, key, description="") {
+  if (primitive[type]) {
+    return _.clone(primitive[type])
+  }
   
   var lookup = from.split('.');
   for (var i = lookup.length; i >= 0; i--) {
@@ -108,6 +110,9 @@ Compiler.prototype.resolve = function(type, from, base, key) {
       if (this.root.used[id] || !base) {
         this.root.definitions[id] = res;
         res = { $ref: '#/definitions/' + id };
+        if (description !== "") {
+          res.description = description
+        }
       }
       
       // Mark as used
@@ -124,10 +129,21 @@ Compiler.prototype.resolve = function(type, from, base, key) {
 /**
  * Compiles and assigns a type
  */
-Compiler.prototype.build = function(type, from, base, key) {
-  var res = this.resolve(type, from, base, key);
-  if (base)
+Compiler.prototype.build = function(type, from, base, key, description='') {
+  var res = this.resolve(type, from, base, key, description);
+  if (primitive[type]) {
+    res.description = description
+  }
+  /*
+  if (description !== "") {
+    res = _.clone(res)
+    res.description = description
+  }
+  */
+  if (base) {
     base[key] = res;
+  }
+
 };
 
 /**
@@ -137,6 +153,7 @@ Compiler.prototype.compileEnum = function(enumType, root) {
   var res = {
     title: enumType.name,
     type: 'string',
+    description: enumType.description,
     enum: Object.keys(enumType.values)
   };
   
@@ -149,6 +166,7 @@ Compiler.prototype.compileEnum = function(enumType, root) {
 Compiler.prototype.compileMessage = function(message, root) {
   var res = {
     title: message.name,
+    description: message.description,
     type: 'object',
     properties: {},
     required: []
@@ -158,23 +176,36 @@ Compiler.prototype.compileMessage = function(message, root) {
     if (field.map) {
       if (field.map.from !== 'string')
         throw new Error('Can only use strings as map keys at ' + message.id + '.' + field.name);
+
+      var desc = "";
+      if (field.hasOwnProperty('description')) {
+        desc = field.description
+      }
       
       var f = res.properties[field.name] = {
         type: 'object',
-        additionalProperties: null
+        additionalProperties: null,
+        description: desc,
       };
       
       this.build(field.map.to, message.id, f, 'additionalProperties');
     } else {      
+
+      var desc = "";
+      if (field.hasOwnProperty('description')) {
+        desc = field.description
+      }
+
       if (field.repeated) {
         var f = res.properties[field.name] = {
           type: 'array',
-          items: null
+          items: null,
+          description: desc,
         };
         
         this.build(field.type, message.id, f, 'items');
       } else {
-        this.build(field.type, message.id, res.properties, field.name);
+        this.build(field.type, message.id, res.properties, field.name, desc);
       }
     }
     
@@ -184,7 +215,6 @@ Compiler.prototype.compileMessage = function(message, root) {
   
   if (res.required.length === 0)
     delete res.required;
-  
   return res;
 };
 

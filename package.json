@@ -1,9 +1,11 @@
 {
-  "name": "protobuf-jsonschema",
-  "version": "1.1.0",
+  "name": "protobuf-jsonschema2",
+  "version": "1.1.2",
   "description": "Compiles Protobuf IDL to JSON Schema",
   "main": "index.js",
-  "bin": "cli.js",
+  "bin": {
+    "protobuf-jsonschema": "cli.js"
+  },
   "scripts": {
     "test": "mocha"
   },
@@ -26,11 +28,15 @@
   },
   "homepage": "https://github.com/devongovett/protobuf-jsonschema#readme",
   "dependencies": {
+    "underscore": "^1.8.3",
     "commander": "^2.9.0",
     "js-yaml": "^3.4.6",
-    "protocol-buffers-schema": "^3.1.1"
+    "pb-schema": "^3.3.3"
   },
   "devDependencies": {
     "mocha": "^2.3.4"
+  },
+  "directories": {
+    "test": "test"
   }
 }

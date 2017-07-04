@@ -26,6 +26,7 @@ commander
             r["definitions"][key] = result["definitions"][key];
         }
     });
+    //console.log("xxxxxxxxxxxxxxxxxxxxxxxxxxxx r is:", r["definitions"]["Test"]["properties"])
     
     if (format === 'json')
       process.stdout.write(JSON.stringify(r, false, 2) + '\n');
