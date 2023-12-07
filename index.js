@@ -22,13 +22,13 @@ Compiler.prototype.open = function (filename, opts) {
     if (opts.remapImports) {
       for (var key in opts.remapImports) {
         if (i.includes(key)) {
-          this.open(path.resolve(opts.remapImports[key], i));
+          this.open(path.resolve(opts.remapImports[key], i), opts);
           return;
         }
       }
     }
 
-    this.open(path.resolve(path.dirname(filename), i));
+    this.open(path.resolve(path.dirname(filename), i), opts);
   }, this);
 
   return schema;
