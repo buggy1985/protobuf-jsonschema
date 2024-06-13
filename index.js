@@ -86,7 +86,7 @@ Compiler.prototype.compile = function (type) {
  * Resolves a type name at the given path in the schema tree.
  * Returns a compiled JSON schema.
  */
-Compiler.prototype.resolve = function (type, from, base, key, description = "") {
+Compiler.prototype.resolve = function (type, from, base, key, description) {
   if (primitive[type]) {
     return _.clone(primitive[type])
   }
@@ -119,7 +119,7 @@ Compiler.prototype.resolve = function (type, from, base, key, description = "") 
       if (this.root.used[id] || !base) {
         this.root.definitions[id] = res;
         res = { $ref: '#/definitions/' + id };
-        if (description !== "") {
+        if (description) {
           res.description = description
         }
       }
@@ -138,9 +138,9 @@ Compiler.prototype.resolve = function (type, from, base, key, description = "") 
 /**
  * Compiles and assigns a type
  */
-Compiler.prototype.build = function (type, from, base, key, description = '') {
+Compiler.prototype.build = function (type, from, base, key, description) {
   var res = this.resolve(type, from, base, key, description);
-  if (primitive[type]) {
+  if (primitive[type] && description) {
     res.description = description
   }
   /*
@@ -162,9 +162,12 @@ Compiler.prototype.compileEnum = function (enumType, root) {
   var res = {
     title: enumType.name,
     type: 'string',
-    description: enumType.description,
     enum: Object.keys(enumType.values)
   };
+
+  if (enumType.description) {
+    res.description = enumType.description
+  }
 
   return res;
 };
@@ -175,18 +178,21 @@ Compiler.prototype.compileEnum = function (enumType, root) {
 Compiler.prototype.compileMessage = function (message, root) {
   var res = {
     title: message.name,
-    description: message.description,
     type: 'object',
     properties: {},
     required: []
   };
+
+  if (message.description) {
+    res.description = message.description
+  }
 
   message.fields.forEach(function (field) {
     if (field.map) {
       if (field.map.from !== 'string')
         throw new Error('Can only use strings as map keys at ' + message.id + '.' + field.name);
 
-      var desc = "";
+      var desc;
       if (field.hasOwnProperty('description')) {
         desc = field.description
       }
@@ -194,13 +200,15 @@ Compiler.prototype.compileMessage = function (message, root) {
       var f = res.properties[field.name] = {
         type: 'object',
         additionalProperties: null,
-        description: desc,
       };
+      if (desc) {
+        f.description = desc
+      }
 
       this.build(field.map.to, message.id, f, 'additionalProperties');
     } else {
 
-      var desc = "";
+      var desc;
       if (field.hasOwnProperty('description')) {
         desc = field.description
       }
@@ -209,8 +217,10 @@ Compiler.prototype.compileMessage = function (message, root) {
         var f = res.properties[field.name] = {
           type: 'array',
           items: null,
-          description: desc,
         };
+        if (desc) {
+          f.description = desc
+        }
 
         this.build(field.type, message.id, f, 'items');
       } else {
